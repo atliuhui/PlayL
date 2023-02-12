@@ -5,6 +5,8 @@
 
 README.html
 indices
+albums.csv
+artists.csv
 src/**/assets
 dist
 tools

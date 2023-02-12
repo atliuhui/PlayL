@@ -4,32 +4,32 @@ namespace LyricsModel
     using System.Text;
     using System.Text.RegularExpressions;
 
-    public static class LyricsTags
+    public static class LyricsLabels
     {
         public const string separator = "/";
 
-        public const string version_pattern = @"\[ve:([^\n]+)][\r]?\n";
-        public const string album_pattern = @"\[al:([^\n]+)][\r]?\n";
-        public const string track_pattern = @"\[ti:([^\n]+)][\r]?\n";
-        public const string authors_pattern = @"\[au:([^\n]*)][\r]?\n";
-        public const string artists_pattern = @"\[ar:([^\n]*)][\r]?\n";
-        public const string duration_pattern = @"\[length:([^\n]+)][\r]?\n";
+        public const string label_version_pattern = @"\[ve:([^\n]+)][\r]?\n";
+        public const string label_album_pattern = @"\[al:([^\n]+)][\r]?\n";
+        public const string label_track_pattern = @"\[ti:([^\n]+)][\r]?\n";
+        public const string label_authors_pattern = @"\[au:([^\n]*)][\r]?\n";
+        public const string label_artists_pattern = @"\[ar:([^\n]*)][\r]?\n";
+        public const string label_duration_pattern = @"\[length:([^\n]+)][\r]?\n";
         public const string line_pattern = @"\[([0-9:\.]+)]([^\n]*)[\r]?\n";
 
-        public const string version_format = "[ve:{0}]\n";
-        public const string album_format = "[al:{0}]\n";
-        public const string track_format = "[ti:{0}]\n";
-        public const string authors_format = "[au:{0}]\n";
-        public const string artists_format = "[ar:{0}]\n";
-        public const string duration_format = "[length:{0}]\n";
+        public const string label_version_format = "[ve:{0}]\n";
+        public const string label_album_format = "[al:{0}]\n";
+        public const string label_track_format = "[ti:{0}]\n";
+        public const string label_authors_format = "[au:{0}]\n";
+        public const string label_artists_format = "[ar:{0}]\n";
+        public const string label_duration_format = "[length:{0}]\n";
         public const string line_format = "[{0}]{1}\n";
 
         const string time1_format = @"m\:ss";
         const string time2_format = @"h\:mm\:ss";
 
-        public static bool TryParse(string content, Dictionary<string, string> patterns, out Dictionary<string, string> tags)
+        public static bool TryParse(string content, Dictionary<string, string> patterns, out Dictionary<string, string> labels)
         {
-            tags = new Dictionary<string, string>();
+            labels = new Dictionary<string, string>();
             var pattern = string.Join(string.Empty, patterns.Values);
             var match = Regex.Match(content, pattern, RegexOptions.IgnoreCase);
 
@@ -39,7 +39,7 @@ namespace LyricsModel
             var index = 1;
             foreach (var item in patterns.Keys)
             {
-                tags.Add(item, match.Groups[index++].Value);
+                labels.Add(item, match.Groups[index++].Value);
             }
 
             return true;
@@ -53,11 +53,11 @@ namespace LyricsModel
 
             return content;
         }
-        public static string Insert(string content, IEnumerable<string> tags)
+        public static string Insert(string content, IEnumerable<string> lines)
         {
             var builder = new StringBuilder();
 
-            foreach (var item in tags)
+            foreach (var item in lines)
             {
                 builder.Append(item);
             }
@@ -66,17 +66,37 @@ namespace LyricsModel
 
             return builder.ToString();
         }
-        public static string Clear(string content, IEnumerable<string> patterns)
+        public static string Remove(string content, IEnumerable<string> patterns)
         {
             var replacements = patterns.Select(item => new KeyValuePair<string, string>(item, string.Empty));
             return Replace(content, new Dictionary<string, string>(replacements));
         }
         public static string Init(string content, Dictionary<string, string> replacements)
         {
-            content = Clear(content, replacements.Keys);
+            content = Remove(content, replacements.Keys);
             content = Insert(content, replacements.Values);
 
             return content;
+        }
+        public static string Clear(string content)
+        {
+            var builder = new StringBuilder();
+            using (var reader = new StringReader(content))
+            {
+                while (true)
+                {
+                    var line = reader.ReadLine();
+
+                    if (line == null) break;
+
+                    var match = Regex.Match($"{line}\n", LyricsLabels.line_pattern);
+                    if (match.Success)
+                    {
+                        builder.AppendLine(match.Groups[2].Value);
+                    }
+                }
+            }
+            return builder.ToString();
         }
 
         public static IEnumerable<string> ToEnumerable(this string text)

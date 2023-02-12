@@ -49,7 +49,7 @@ namespace LyricsAdmin.Controllers
             try
             {
                 var content = new LyricsContentV1 { Code = metadata.Code, Text = text };
-                await this.assets.Append(metadata.Code, metadata.AlbumName, metadata.ArtistNames, content.Text);
+                await this.assets.Append(metadata.Code, content.Text);
                 this.indices.AppendLyrics(new LyricsInfo { Metadata = metadata, Content = content });
 
                 return this.Ok(new DefaultResult());
@@ -73,8 +73,35 @@ namespace LyricsAdmin.Controllers
             try
             {
                 var content = new LyricsContentV1 { Code = metadata.Code, Text = text };
-                await this.assets.Update(metadata.Code, text);
+                await this.assets.Update(metadata.Code, content.Text);
                 this.indices.UpdateLyrics(new LyricsInfo { Metadata = metadata, Content = content });
+
+                return this.Ok(new DefaultResult());
+            }
+            catch (Exception ex)
+            {
+                return this.BadRequest(new DefaultResult { Message = ex.GetBaseException().Message });
+            }
+        }
+
+        [HttpPut("merge")]
+        [ProducesResponseType(typeof(DefaultResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DefaultResult), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Merge()
+        {
+            try
+            {
+                var files = await this.assets.GetFiles();
+                foreach (var item in files)
+                {
+                    var text = System.IO.File.ReadAllText(item.FullName);
+                    if (LyricsMetadataV1.TryParse(text, out var metadata))
+                    {
+                        var content = new LyricsContentV1 { Code = metadata.Code, Text = text };
+                        await this.assets.Merge(Path.GetFileNameWithoutExtension(item.Name), content.Text);
+                        this.indices.MergeLyrics(new LyricsInfo { Metadata = metadata, Content = content });
+                    }
+                }
 
                 return this.Ok(new DefaultResult());
             }

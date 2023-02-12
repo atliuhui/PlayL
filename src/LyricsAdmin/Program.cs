@@ -16,7 +16,7 @@ builder.Services.AddSingleton<LyricsAssetsService>(provider =>
 builder.Services.AddSingleton<LyricsIndicesService>(provider =>
 {
     var option = provider.GetRequiredService<IOptions<DefaultOption>>().Value;
-    return new LyricsIndicesService(option.IndicesRoot());
+    return new LyricsIndicesService(option.AssetsRoot());
 });
 builder.Services.AddControllers(options =>
 {
